@@ -20,10 +20,10 @@ class User
     private bool $admin = false;
 
     #[ORM\Column]
-    private ?string $name;
+    private ?string $name = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $description;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::TEXT, nullable: true)]
+    private ?string $description = null;
 
     #[ORM\Column(length: 180, unique: true)]
     private ?string $email = null;
@@ -73,6 +73,9 @@ class User
         $this->description = $description;
     }
 
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, \App\Entity\Media>
+     */
     public function getMedias(): Collection
     {
         return $this->medias;

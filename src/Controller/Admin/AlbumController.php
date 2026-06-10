@@ -12,12 +12,15 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class AlbumController extends AbstractController
 {
+    public function __construct(private \Doctrine\Persistence\ManagerRegistry $managerRegistry)
+    {
+    }
     /**
      * @Route("/admin/album", name="admin_album_index")
      */
-    public function index()
+    public function index(): \Symfony\Component\HttpFoundation\Response
     {
-        $albums = $this->getDoctrine()->getRepository(Album::class)->findAll();
+        $albums = $this->managerRegistry->getRepository(Album::class)->findAll();
 
         return $this->render('admin/album/index.html.twig', ['albums' => $albums]);
     }
@@ -32,8 +35,8 @@ class AlbumController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->getDoctrine()->getManager()->persist($album);
-            $this->getDoctrine()->getManager()->flush();
+            $this->managerRegistry->getManager()->persist($album);
+            $this->managerRegistry->getManager()->flush();
 
             return $this->redirectToRoute('admin_album_index');
         }
@@ -46,12 +49,12 @@ class AlbumController extends AbstractController
      */
     public function update(Request $request, int $id)
     {
-        $album = $this->getDoctrine()->getRepository(Album::class)->find($id);
+        $album = $this->managerRegistry->getRepository(Album::class)->find($id);
         $form = $this->createForm(AlbumType::class, $album);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->getDoctrine()->getManager()->flush();
+            $this->managerRegistry->getManager()->flush();
 
             return $this->redirectToRoute('admin_album_index');
         }
@@ -62,11 +65,11 @@ class AlbumController extends AbstractController
     /**
      * @Route("/admin/album/delete/{id}", name="admin_album_delete")
      */
-    public function delete(int $id)
+    public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {
-        $media = $this->getDoctrine()->getRepository(Album::class)->find($id);
-        $this->getDoctrine()->getManager()->remove($media);
-        $this->getDoctrine()->getManager()->flush();
+        $media = $this->managerRegistry->getRepository(Album::class)->find($id);
+        $this->managerRegistry->getManager()->remove($media);
+        $this->managerRegistry->getManager()->flush();
 
         return $this->redirectToRoute('admin_album_index');
     }

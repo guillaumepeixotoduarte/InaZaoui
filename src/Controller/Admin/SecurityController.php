@@ -8,13 +8,16 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
 {
+    public function __construct(private \Symfony\Component\Security\Http\Authentication\AuthenticationUtils $authenticationUtils)
+    {
+    }
     /**
      * @Route("/login", name="admin_login")
      */
-    public function login(AuthenticationUtils $authenticationUtils)
+    public function login(): \Symfony\Component\HttpFoundation\Response
     {
-        $error = $authenticationUtils->getLastAuthenticationError();
-        $lastUsername = $authenticationUtils->getLastUsername();
+        $error = $this->authenticationUtils->getLastAuthenticationError();
+        $lastUsername = $this->authenticationUtils->getLastUsername();
         return $this->render('admin/login.html.twig', [
             'last_username' => $lastUsername,
             'error'         => $error,

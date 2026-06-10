@@ -10,10 +10,13 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class HomeController extends AbstractController
 {
+    public function __construct(private \Doctrine\Persistence\ManagerRegistry $managerRegistry)
+    {
+    }
     /**
      * @Route("/", name="home")
      */
-    public function home()
+    public function home(): \Symfony\Component\HttpFoundation\Response
     {
         return $this->render('front/home.html.twig');
     }
@@ -21,9 +24,9 @@ class HomeController extends AbstractController
     /**
      * @Route("/guests", name="guests")
      */
-    public function guests()
+    public function guests(): \Symfony\Component\HttpFoundation\Response
     {
-        $guests = $this->getDoctrine()->getRepository(User::class)->findBy(['admin' => false]);
+        $guests = $this->managerRegistry->getRepository(User::class)->findBy(['admin' => false]);
         return $this->render('front/guests.html.twig', [
             'guests' => $guests
         ]);
@@ -32,9 +35,9 @@ class HomeController extends AbstractController
     /**
      * @Route("/guest/{id}", name="guest")
      */
-    public function guest(int $id)
+    public function guest(int $id): \Symfony\Component\HttpFoundation\Response
     {
-        $guest = $this->getDoctrine()->getRepository(User::class)->find($id);
+        $guest = $this->managerRegistry->getRepository(User::class)->find($id);
         return $this->render('front/guest.html.twig', [
             'guest' => $guest
         ]);
@@ -43,15 +46,15 @@ class HomeController extends AbstractController
     /**
      * @Route("/portfolio/{id}", name="portfolio")
      */
-    public function portfolio(?int $id = null)
+    public function portfolio(?int $id = null): \Symfony\Component\HttpFoundation\Response
     {
-        $albums = $this->getDoctrine()->getRepository(Album::class)->findAll();
-        $album = $id ? $this->getDoctrine()->getRepository(Album::class)->find($id) : null;
-        $user = $this->getDoctrine()->getRepository(User::class)->findOneByAdmin(true);
+        $albums = $this->managerRegistry->getRepository(Album::class)->findAll();
+        $album = $id ? $this->managerRegistry->getRepository(Album::class)->find($id) : null;
+        $user = $this->managerRegistry->getRepository(User::class)->findOneByAdmin(true);
 
         $medias = $album
-            ? $this->getDoctrine()->getRepository(Media::class)->findByAlbum($album)
-            : $this->getDoctrine()->getRepository(Media::class)->findByUser($user);
+            ? $this->managerRegistry->getRepository(Media::class)->findByAlbum($album)
+            : $this->managerRegistry->getRepository(Media::class)->findByUser($user);
         return $this->render('front/portfolio.html.twig', [
             'albums' => $albums,
             'album' => $album,
@@ -62,7 +65,7 @@ class HomeController extends AbstractController
     /**
      * @Route("/about", name="about")
      */
-    public function about()
+    public function about(): \Symfony\Component\HttpFoundation\Response
     {
         return $this->render('front/about.html.twig');
     }

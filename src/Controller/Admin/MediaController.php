@@ -4,18 +4,21 @@ namespace App\Controller\Admin;
 
 use App\Entity\Media;
 use App\Form\MediaType;
+use Doctrine\ORM\EntityRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Doctrine\Persistence\ManagerRegistry;
 
 class MediaController extends AbstractController
 {
-    public function __construct(private \Doctrine\Persistence\ManagerRegistry $managerRegistry)
+    public function __construct(private ManagerRegistry $managerRegistry)
     {
     }
     /**
      * @Route("/admin/media", name="admin_media_index")
      */
+    #[Route('/admin/media', name: 'admin_media_index')]
     public function index(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $page = $request->query->getInt('page', 1);
@@ -32,7 +35,11 @@ class MediaController extends AbstractController
             25,
             25 * ($page - 1)
         );
-        $total = $this->managerRegistry->getRepository(Media::class)->count([]);
+
+        /** @var EntityRepository $repository */
+        $repository = $this->managerRegistry->getRepository(Media::class);
+
+        $total = $repository->count([]);
 
         return $this->render('admin/media/index.html.twig', [
             'medias' => $medias,
@@ -41,9 +48,7 @@ class MediaController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/admin/media/add", name="admin_media_add")
-     */
+    #[Route('/admin/media/add', name: 'admin_media_add')]
     public function add(Request $request)
     {
         $media = new Media();
@@ -65,9 +70,7 @@ class MediaController extends AbstractController
         return $this->render('admin/media/add.html.twig', ['form' => $form->createView()]);
     }
 
-    /**
-     * @Route("/admin/media/delete/{id}", name="admin_media_delete")
-     */
+    #[Route('/admin/media/delete/{id}', name: 'admin_media_delete')]
     public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         $media = $this->managerRegistry->getRepository(Media::class)->find($id);

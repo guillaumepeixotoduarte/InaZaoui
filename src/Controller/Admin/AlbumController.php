@@ -9,6 +9,7 @@ use App\Form\MediaType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Doctrine\Persistence\ManagerRegistry;
 
 final class AlbumController extends AbstractController
@@ -17,6 +18,7 @@ final class AlbumController extends AbstractController
     {
     }
     #[Route('/admin/album', name: 'admin_album_index')]
+    #[isGranted('ROLE_ADMIN')]
     public function index(): \Symfony\Component\HttpFoundation\Response
     {
         $albums = $this->managerRegistry->getRepository(Album::class)->findAll();
@@ -25,6 +27,7 @@ final class AlbumController extends AbstractController
     }
 
     #[Route('/admin/album/add', name: 'admin_album_add')]
+    #[isGranted('ROLE_ADMIN')]
     public function add(Request $request)
     {
         $album = new Album();
@@ -42,6 +45,7 @@ final class AlbumController extends AbstractController
     }
 
     #[Route('/admin/album/update/{id}', name: 'admin_album_update')]
+    #[isGranted('ROLE_ADMIN')]
     public function update(Request $request, int $id)
     {
         $album = $this->managerRegistry->getRepository(Album::class)->find($id);
@@ -58,6 +62,7 @@ final class AlbumController extends AbstractController
     }
 
     #[Route('/admin/album/delete/{id}', name: 'admin_album_delete')]
+    #[isGranted('ROLE_ADMIN')]
     public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         $media = $this->managerRegistry->getRepository(Album::class)->find($id);

@@ -2,10 +2,21 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
     providers:
-        app_user_provider:
+        admin_in_memory:
             memory:
                 users:
                     ina: { password: '$2y$13$7JS0ehfU8vZhB3Q8o1sPGuoQxkiPGXRGgrAizmNfI5Sgy.Dqt9xoW', roles: ['ROLE_ADMIN'] }
+
+        # 2. Le fournisseur qui va chercher les utilisateurs classiques en BDD
+        users_in_database:
+            entity:
+                class: App\Entity\User
+                property: name
+
+        # 3. LA CHAÎNE : On lie les deux ensembles !
+        app_user_provider:
+            chain:
+                providers: [admin_in_memory, users_in_database]
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/

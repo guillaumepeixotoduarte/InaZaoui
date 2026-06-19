@@ -2,10 +2,10 @@
 
 {% block admin %}
     <div class="d-flex justify-content-between align-items-center">
-        <h1>Invités</h1>
+        <h2 class="page-title fs-1">Invités</h2>
         <a href="{{ path('admin_user_add') }}" class="btn btn-primary">Ajouter</a>
     </div>
-    <table class="table">
+    <table class="table admin-user-table">
         <thead>
             <tr>
                 <th>Nom</th>
@@ -19,8 +19,8 @@
                     <td>{{ user.name }}</td>
                     <td>{{ user.email }}</td>
                     <td>
-                        <a href="{{ path('admin_user_delete', {id: user.id}) }}" class="btn btn-danger">Supprimer</a>
-                        <a href="{{ path('admin_user_switch_access', {id: user.id}) }}" class="btn {{ user.active ? 'btn-secondary' : 'btn-success' }}">{{ user.active ? 'Désactiver' : 'Activer' }}</a>
+                        <a href="{{ path('admin_user_delete', {id: user.id}) }}" class="btn btn-danger delete-user">Supprimer</a>
+                        <a href="{{ path('admin_user_switch_access', {id: user.id}) }}" class="btn {{ user.active ? 'btn-secondary' : 'btn-success' }} deactivate-user">{{ user.active ? 'Désactiver' : 'Activer' }}</a>
                     </td>
                 </tr>
             {% endfor %}

@@ -5,9 +5,11 @@ namespace App\Controller\Admin;
 use App\Entity\User;
 use App\Form\UserType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\ORM\EntityRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class UserController extends AbstractController
@@ -39,16 +41,20 @@ final class UserController extends AbstractController
         return $this->render('admin/user/index.html.twig', ['users' => $users, 'total' => $total, 'page' => $page]);
     }
 
-    #[Route('/admin/user/add', name: 'admin_user_add')]
+    #[Route('/admin/invite/add', name: 'admin_user_add')]
     #[isGranted('ROLE_ADMIN')]
-    public function add(Request $request)
+    public function add(Request $request, UserPasswordHasherInterface $passwordHasher)
     {
         $user = new User();
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $user->setPassword(password_hash($user->getPassword(), PASSWORD_DEFAULT));
+
+            $plainPassword = $form->get('password')->getData();
+            $hashedPassword = $passwordHasher->hashPassword($user, $plainPassword);
+            $user->setPassword($hashedPassword);
+
             $this->managerRegistry->getManager()->persist($user);
             $this->managerRegistry->getManager()->flush();
 
@@ -58,7 +64,7 @@ final class UserController extends AbstractController
         return $this->render('admin/user/add.html.twig', ['form' => $form->createView()]);
     }
 
-    #[Route('/admin/user/delete/{id}', name: 'admin_user_delete')]
+    #[Route('/admin/invite/delete/{id}', name: 'admin_user_delete')]
     #[isGranted('ROLE_ADMIN')]
     public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {
@@ -69,7 +75,7 @@ final class UserController extends AbstractController
         return $this->redirectToRoute('admin_user_index');
     }
 
-    #[Route('/admin/user/switch_access/{id}', name: 'admin_user_switch_access')]
+    #[Route('/admin/invite/switch_access/{id}', name: 'admin_user_switch_access')]
     #[isGranted('ROLE_ADMIN')]
     public function switchAccess(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {

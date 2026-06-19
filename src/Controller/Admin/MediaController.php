@@ -9,6 +9,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class MediaController extends AbstractController
 {
@@ -59,8 +61,12 @@ class MediaController extends AbstractController
             if (!$this->isGranted('ROLE_ADMIN')) {
                 $media->setUser($this->getUser());
             }
+
+            $publicDir = $this->getParameter('kernel.project_dir') . '/public';
+            $uploadTargetDir = $publicDir . '/uploads/';
+
             $media->setPath('uploads/' . md5(uniqid()) . '.' . $media->getFile()->guessExtension());
-            $media->getFile()->move('uploads/', $media->getPath());
+            $media->getFile()->move($uploadTargetDir, $media->getPath());
             $this->managerRegistry->getManager()->persist($media);
             $this->managerRegistry->getManager()->flush();
 
@@ -74,9 +80,22 @@ class MediaController extends AbstractController
     public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         $media = $this->managerRegistry->getRepository(Media::class)->find($id);
+
+        if (!$media) {
+            throw new NotFoundHttpException('Ce média n\'existe pas.');
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN') && $media->getUser() !== $this->getUser()) {
+            throw new AccessDeniedException('Vous n\'avez pas le droit de supprimer ce média.');
+        }
+
+        $filePath = $media->getPath();
+        if ($filePath && file_exists($filePath)) {
+            unlink($filePath);
+        }
+
         $this->managerRegistry->getManager()->remove($media);
         $this->managerRegistry->getManager()->flush();
-        unlink($media->getPath());
 
         return $this->redirectToRoute('admin_media_index');
     }

@@ -28,6 +28,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
     /**
      * Used to upgrade (rehash) the user's password automatically over time.
+     * @codeCoverageIgnore
      */
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
@@ -38,6 +39,28 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $user->setPassword($newHashedPassword);
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();
+    }
+
+    public function findOneWithMedias(int $id): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.medias', 'm') // Jointure avec la relation médias
+            ->addSelect('m')            // Force le chargement immédiat des données
+            ->where('u.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findAllGuestsWithMedias(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.medias', 'm')
+            ->addSelect('m')       
+            ->where('u.admin = :admin')
+            ->setParameter('admin', false)
+            ->getQuery()
+            ->getResult();
     }
 
 //    /**

@@ -8,6 +8,8 @@ use App\Form\AlbumType;
 use App\Form\MediaType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,7 +21,7 @@ final class AlbumController extends AbstractController
     }
     #[Route('/admin/album', name: 'admin_album_index')]
     #[isGranted('ROLE_ADMIN')]
-    public function index(): \Symfony\Component\HttpFoundation\Response
+    public function index(): Response
     {
         $albums = $this->managerRegistry->getRepository(Album::class)->findAll();
 
@@ -28,7 +30,7 @@ final class AlbumController extends AbstractController
 
     #[Route('/admin/album/add', name: 'admin_album_add')]
     #[isGranted('ROLE_ADMIN')]
-    public function add(Request $request)
+    public function add(Request $request): Response
     {
         $album = new Album();
         $form = $this->createForm(AlbumType::class, $album);
@@ -46,7 +48,7 @@ final class AlbumController extends AbstractController
 
     #[Route('/admin/album/update/{id}', name: 'admin_album_update')]
     #[isGranted('ROLE_ADMIN')]
-    public function update(Request $request, int $id)
+    public function update(Request $request, int $id): Response
     {
         $album = $this->managerRegistry->getRepository(Album::class)->find($id);
         $form = $this->createForm(AlbumType::class, $album);
@@ -63,10 +65,15 @@ final class AlbumController extends AbstractController
 
     #[Route('/admin/album/delete/{id}', name: 'admin_album_delete')]
     #[isGranted('ROLE_ADMIN')]
-    public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function delete(int $id): RedirectResponse
     {
-        $media = $this->managerRegistry->getRepository(Album::class)->find($id);
-        $this->managerRegistry->getManager()->remove($media);
+        $album = $this->managerRegistry->getRepository(Album::class)->find($id);
+
+        if (!$album instanceof Album) {
+            throw $this->createNotFoundException("L'album demandé n'existe pas.");
+        }
+
+        $this->managerRegistry->getManager()->remove($album);
         $this->managerRegistry->getManager()->flush();
 
         return $this->redirectToRoute('admin_album_index');

@@ -19,6 +19,7 @@ class Media
     private ?User $user = null;
 
     #[ORM\ManyToOne(targetEntity: Album::class, fetch: "EAGER")]
+    #[ORM\JoinColumn(onDelete: "CASCADE")]
     private ?Album $album = null;
 
     #[ORM\Column]
@@ -27,6 +28,7 @@ class Media
     #[ORM\Column]
     private string $title;
 
+    #[Assert\NotNull(message: "Le fichier doit être une image valide (JPEG, PNG, WEBP).")]
     #[Assert\Image(
         maxSize: '2M',
         maxSizeMessage: 'Le fichier est trop lourd ({{ size }} {{ suffix }}). La limite est de {{ limit }} {{ suffix }}.',

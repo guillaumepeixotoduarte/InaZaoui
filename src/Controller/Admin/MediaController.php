@@ -4,24 +4,20 @@ namespace App\Controller\Admin;
 
 use App\Entity\Media;
 use App\Form\MediaType;
-use Doctrine\ORM\EntityRepository;
+use App\Repository\MediaRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class MediaController extends AbstractController
 {
-    public function __construct(private ManagerRegistry $managerRegistry)
-    {
-    }
-    /**
-     * @Route("/admin/media", name="admin_media_index")
-     */
     #[Route('/admin/media', name: 'admin_media_index')]
-    public function index(Request $request): \Symfony\Component\HttpFoundation\Response
+    public function index(Request $request, MediaRepository $mediaRepository): Response
     {
         $page = $request->query->getInt('page', 1);
 
@@ -31,17 +27,14 @@ class MediaController extends AbstractController
             $criteria['user'] = $this->getUser();
         }
 
-        $medias = $this->managerRegistry->getRepository(Media::class)->findBy(
+        $medias = $mediaRepository->findBy(
             $criteria,
             ['id' => 'ASC'],
             25,
             25 * ($page - 1)
         );
 
-        /** @var EntityRepository $repository */
-        $repository = $this->managerRegistry->getRepository(Media::class);
-
-        $total = $repository->count([]);
+        $total = $mediaRepository->count([]);
 
         return $this->render('admin/media/index.html.twig', [
             'medias' => $medias,
@@ -51,7 +44,7 @@ class MediaController extends AbstractController
     }
 
     #[Route('/admin/media/add', name: 'admin_media_add')]
-    public function add(Request $request)
+    public function add(Request $request, EntityManagerInterface $em): Response
     {
         $media = new Media();
         $form = $this->createForm(MediaType::class, $media, ['is_admin' => $this->isGranted('ROLE_ADMIN')]);
@@ -67,8 +60,8 @@ class MediaController extends AbstractController
 
             $media->setPath('uploads/' . md5(uniqid()) . '.' . $media->getFile()->guessExtension());
             $media->getFile()->move($uploadTargetDir, $media->getPath());
-            $this->managerRegistry->getManager()->persist($media);
-            $this->managerRegistry->getManager()->flush();
+            $em->persist($media);
+            $em->flush();
 
             return $this->redirectToRoute('admin_media_index');
         }
@@ -77,9 +70,9 @@ class MediaController extends AbstractController
     }
 
     #[Route('/admin/media/delete/{id}', name: 'admin_media_delete')]
-    public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function delete(int $id, MediaRepository $mediaRepository, EntityManagerInterface $em): RedirectResponse
     {
-        $media = $this->managerRegistry->getRepository(Media::class)->find($id);
+        $media = $mediaRepository->getRepository(Media::class)->find($id);
 
         if (!$media) {
             throw new NotFoundHttpException('Ce média n\'existe pas.');
@@ -94,8 +87,8 @@ class MediaController extends AbstractController
             unlink($filePath);
         }
 
-        $this->managerRegistry->getManager()->remove($media);
-        $this->managerRegistry->getManager()->flush();
+        $em->remove($media);
+        $em->flush();
 
         return $this->redirectToRoute('admin_media_index');
     }

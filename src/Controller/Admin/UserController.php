@@ -4,46 +4,43 @@ namespace App\Controller\Admin;
 
 use App\Entity\User;
 use App\Form\UserType;
+use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class UserController extends AbstractController
 {
-    public function __construct(private ManagerRegistry $managerRegistry)
-    {
-    }
-
 
     #[Route('/admin/invite', name: 'admin_user_index')]
     #[isGranted('ROLE_ADMIN')]
-    public function index(Request $request): \Symfony\Component\HttpFoundation\Response
+    public function index(Request $request, UserRepository $userRepository): Response
     {
 
         $page = $request->query->getInt('page', 1);
 
-        $users = $this->managerRegistry->getRepository(User::class)->findBy(
+        $users = $userRepository->findBy(
             [],
             ['id' => 'ASC'],
             25,
             25 * ($page - 1)
         );
 
-        /** @var EntityRepository $repository */
-        $repository = $this->managerRegistry->getRepository(User::class);
-
-        $total = $repository->count([]);
+        $total = $userRepository->count([]);
 
         return $this->render('admin/user/index.html.twig', ['users' => $users, 'total' => $total, 'page' => $page]);
     }
 
     #[Route('/admin/invite/add', name: 'admin_user_add')]
     #[isGranted('ROLE_ADMIN')]
-    public function add(Request $request, UserPasswordHasherInterface $passwordHasher)
+    public function add(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $em): Response
     {
         $user = new User();
         $form = $this->createForm(UserType::class, $user);
@@ -52,11 +49,16 @@ final class UserController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
 
             $plainPassword = $form->get('password')->getData();
+
+            if (!is_string($plainPassword) || empty($plainPassword)) {
+                throw new \RuntimeException("Le mot de passe fourni n'est pas valide.");
+            }
+
             $hashedPassword = $passwordHasher->hashPassword($user, $plainPassword);
             $user->setPassword($hashedPassword);
 
-            $this->managerRegistry->getManager()->persist($user);
-            $this->managerRegistry->getManager()->flush();
+            $em->persist($user);
+            $em->flush();
 
             return $this->redirectToRoute('admin_user_index');
         }
@@ -66,22 +68,32 @@ final class UserController extends AbstractController
 
     #[Route('/admin/invite/delete/{id}', name: 'admin_user_delete')]
     #[isGranted('ROLE_ADMIN')]
-    public function delete(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $em): RedirectResponse
     {
-        $user = $this->managerRegistry->getRepository(User::class)->find($id);
-        $this->managerRegistry->getManager()->remove($user);
-        $this->managerRegistry->getManager()->flush();
+        $user = $userRepository->find($id);
+
+        if (!$user instanceof User) {
+            throw new NotFoundHttpException("Cet utilisateur n'existe pas.");
+        }
+
+        $em->remove($user);
+        $em->flush();
 
         return $this->redirectToRoute('admin_user_index');
     }
 
     #[Route('/admin/invite/switch_access/{id}', name: 'admin_user_switch_access')]
     #[isGranted('ROLE_ADMIN')]
-    public function switchAccess(int $id): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function switchAccess(int $id, UserRepository $userRepository, EntityManagerInterface $em): RedirectResponse
     {
-        $user = $this->managerRegistry->getRepository(User::class)->find($id);
+        $user = $userRepository->find($id);
+        
+        if (!$user instanceof User) {
+            throw new NotFoundHttpException("Cet utilisateur n'existe pas.");
+        }
+
         $user->setActive(!$user->isActive());
-        $this->managerRegistry->getManager()->flush();
+        $em->flush();
 
         return $this->redirectToRoute('admin_user_index');
     }

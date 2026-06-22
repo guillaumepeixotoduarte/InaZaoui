@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\Album;
 use App\Entity\Media;
 use App\Entity\User;
+use App\Repository\AlbumRepository;
+use App\Repository\MediaRepository;
 use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Attribute\Route;
@@ -12,9 +14,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HomeController extends AbstractController
 {
-    public function __construct(private \Doctrine\Persistence\ManagerRegistry $managerRegistry)
-    {
-    }
 
     #[Route('/', name: 'home')]
     public function home(): Response
@@ -46,15 +45,19 @@ class HomeController extends AbstractController
     }
 
     #[Route('/portfolio/{id}', name: 'portfolio')]
-    public function portfolio(?int $id = null): Response
+    public function portfolio(?int $id = null, AlbumRepository $albumRepository, UserRepository $userRepository, MediaRepository $mediaRepository): Response
     {
-        $albums = $this->managerRegistry->getRepository(Album::class)->findAll();
-        $album = $id ? $this->managerRegistry->getRepository(Album::class)->find($id) : null;
-        $user = $this->managerRegistry->getRepository(User::class)->findOneBy(['admin' => true]);
+        $albums = $albumRepository->findAll();
+        $album = $id ? $albumRepository->find($id) : null;
+        $user = $userRepository->findOneBy(['admin' => true]);
 
-        $medias = $album
-            ? $this->managerRegistry->getRepository(Media::class)->findBy(['album' => $album])
-            : $this->managerRegistry->getRepository(Media::class)->findBy(['user' => $user]);
+        if ($album instanceof Album) {
+            $medias = $mediaRepository->findBy(['album' => $album]);
+        } else {
+            $medias = $user instanceof User ? $mediaRepository->findBy(['user' => $user]) : [];
+        }
+
+
         return $this->render('front/portfolio.html.twig', [
             'albums' => $albums,
             'album' => $album,

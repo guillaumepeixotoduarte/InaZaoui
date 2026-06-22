@@ -62,8 +62,13 @@ phpunit:
   dependencies:
     - install_dependencies
   before_script:    
-    - apt-get update && apt-get install -y libicu-dev
-    - docker-php-ext-install intl pdo_mysql
+    # Ajout des bibliothèques nécessaires pour GD (images) et intl
+    - apt-get update && apt-get install -y libicu-dev libpng-dev libjpeg-dev libfreetype6-dev
+    
+    # Configuration et installation de GD, puis pdo_mysql et intl
+    - docker-php-ext-configure gd --with-freetype --with-jpeg
+    - docker-php-ext-install intl pdo_mysql gd
+    
     # Préparation de la base de données de test
     - php bin/console doctrine:database:drop --force --if-exists --env=test
     - php bin/console doctrine:database:create --if-not-exists --env=test

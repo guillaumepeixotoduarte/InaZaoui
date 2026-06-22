@@ -1,0 +1,77 @@
+# On utilise une image PHP officielle avec l'extension de votre choix (ou une image configurée)
+image: php:8.4-cli
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+
+# L'ordre d'exécution de nos tâches
+stages:
+  - build
+  - lint
+  - test
+
+install_dependencies:
+  stage: build
+  before_script:
+    # Installation de unzip nécessaire pour Composer et libicu pour intl
+    - apt-get update && apt-get install -y unzip libicu-dev
+    - docker-php-ext-configure intl
+    - docker-php-ext-install intl
+    # Installation de Composer
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  script:
+    - composer install --no-progress --no-suggest --prefer-dist
+  artifacts:
+    paths:
+      - vendor/
+    expire_in: 1 hr
+
+twig_lint:
+  stage: lint
+  before_script:
+    # Symfony a besoin de intl pour charger ses configurations, même pour le linting
+    - apt-get update && apt-get install -y libicu-dev
+    - docker-php-ext-install intl
+  script:
+    - php bin/console lint:twig templates
+
+phpstan:
+  image: php:8.4-cli
+  stage: test
+  before_script:
+    - apt-get update && apt-get install -y libicu-dev
+    - docker-php-ext-install intl
+    - php bin/console cache:clear --env=dev
+  script:
+    - vendor/bin/phpstan analyse src tests --level=9 --memory-limit=-1
+
+phpunit:
+  image: php:8.4-cli
+  stage: test
+  services:
+    - name: mysql:8.0
+      alias: db_test
+  variables:
+    MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    MYSQL_DATABASE: ina_zaoui_test
+    # 💡 CORRECTION : L'hôte est "db_test" (l'alias) et le nom de bdd correspond à MYSQL_DATABASE
+    DATABASE_URL: "mysql://root@db_test:3306/ina_zaoui_test?serverVersion=8.0.46&charset=utf8mb4"
+    APP_ENV: test
+  dependencies:
+    - install_dependencies
+  before_script:    
+    - apt-get update && apt-get install -y libicu-dev
+    - docker-php-ext-install intl pdo_mysql
+    # Préparation de la base de données de test
+    - php bin/console doctrine:database:drop --force --if-exists --env=test
+    - php bin/console doctrine:database:create --if-not-exists --env=test
+    - php bin/console doctrine:schema:update --force --env=test
+    - php bin/console doctrine:fixtures:load --no-interaction --env=test > /dev/null 2>&1
+
+    - php bin/console importmap:install --env=test
+    - php bin/console sass:build --env=test
+  script:
+    - php bin/phpunit --colors=never
+  allow_failure: false

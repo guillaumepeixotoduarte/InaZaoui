@@ -25,13 +25,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private bool $admin = false;
 
     #[ORM\Column(length: 255)]
-    private ?string $name = null;
+    private string $name = '';
 
     #[ORM\Column(type: \Doctrine\DBAL\Types\Types::TEXT, nullable: true)]
     private ?string $description = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $email = null;
+    private string $email = '';
 
     /**
      * @var Collection<int, Media>
@@ -40,7 +40,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $medias;
 
     #[ORM\Column(length: 255)]
-    private ?string $password = null;
+    private string $password = '';
 
     /**
      * @var array<int, string>
@@ -49,7 +49,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private array $roles = [];
 
     #[ORM\Column]
-    private ?bool $active = true;
+    private bool $active = true;
 
     public function __construct()
     {
@@ -78,7 +78,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->name;
     }
 
-    public function setName(?string $name): void
+    public function setName(string $name): void
     {
         $this->name = $name;
     }
@@ -136,7 +136,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        $name = (string) $this->name;
+        $name = $this->name;
         
         if ($name === '') {
             return 'anonymous_user';
@@ -147,7 +147,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUsername(): string
     {
-        return (string) $this->name;
+        return $this->name;
     }
 
     /**
@@ -177,7 +177,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     }
 
-    public function isActive(): ?bool
+    public function isActive(): bool
     {
         return $this->active;
     }

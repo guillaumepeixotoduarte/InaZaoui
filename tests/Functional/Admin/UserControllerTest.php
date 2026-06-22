@@ -20,13 +20,13 @@ class UserControllerTest extends FunctionnalTestCase
         $this->login();
 
         $this->get('/admin/invite');
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('h2.page-title', 'Invités'); 
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h2.page-title', 'Invités'); 
 
         $expectedUserCount = $this->service(UserRepository::class)->count([]);
         $expectedOnPage = min($expectedUserCount, 25);
 
-        $this->assertSelectorCount($expectedOnPage, '.admin-user-table tbody tr');
+        self::assertSelectorCount($expectedOnPage, '.admin-user-table tbody tr');
     }
 
     /**
@@ -37,7 +37,7 @@ class UserControllerTest extends FunctionnalTestCase
         $this->login();
 
         $crawler = $this->get('/admin/invite/add');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Ajouter')->form();
         $form['user[name]'] = 'Add Test';
@@ -49,7 +49,15 @@ class UserControllerTest extends FunctionnalTestCase
 
         $this->client->submit($form);
 
-        $this->assertResponseRedirects('/admin/invite');
+        self::assertResponseRedirects('/admin/invite');
+
+        $userRepository = $this->service(UserRepository::class);
+        $user = $userRepository->findOneBy(['email' => 'addtest@test.com']);
+
+        self::assertNotNull($user, "L'utilisateur n'a pas été enregistré en base de données.");
+
+        $this->getEntityManager()->remove($user);
+        $this->getEntityManager()->flush();
     }
 
     /**
@@ -61,7 +69,7 @@ class UserControllerTest extends FunctionnalTestCase
         $this->login();
 
         $crawler = $this->get('/admin/invite');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $userRepository = $this->service(UserRepository::class);
         $classicUser = $userRepository->findOneBy(['admin' => false]);
@@ -74,14 +82,14 @@ class UserControllerTest extends FunctionnalTestCase
         $link = $crawler->filter(sprintf('a[href="/admin/invite/switch_access/%d"]', $classicUserId))->link();
 
         $this->client->click($link);
-        $this->assertResponseRedirects('/admin/invite');
+        self::assertResponseRedirects('/admin/invite');
         $this->getEntityManager()->clear();
 
         $AfterChangeUser = $userRepository->findOneBy(['id' => $classicUserId]);
 
         self::assertNotNull($AfterChangeUser, "L'utilisateur doit exister en BDD.");
 
-        $this->assertNotEquals($userAccess, $AfterChangeUser->isActive(), 'Le statut de l\'utilisateur n\'a pas été inversé en BDD.');
+        self::assertNotEquals($userAccess, $AfterChangeUser->isActive(), 'Le statut de l\'utilisateur n\'a pas été inversé en BDD.');
     }
 
     /**
@@ -98,7 +106,7 @@ class UserControllerTest extends FunctionnalTestCase
 
         $this->get('/admin/invite/delete/' . $albumId);
 
-        $this->assertResponseRedirects('/admin/invite');
+        self::assertResponseRedirects('/admin/invite');
 
         $this->getEntityManager()->clear();
         $deletedUser = $userRepository->find($albumId);
@@ -117,7 +125,7 @@ class UserControllerTest extends FunctionnalTestCase
         $classicUserId = $classicUser->getId();
         $this->get(sprintf('/admin/invite/delete/%d', $classicUserId));
 
-        $this->assertResponseRedirects('/login'); 
+        self::assertResponseRedirects('/login'); 
 
         $this->getEntityManager()->clear();
 
@@ -146,7 +154,7 @@ class UserControllerTest extends FunctionnalTestCase
         $this->get(sprintf('/admin/invite/delete/%d', $classicUserId));
 
         // 💡 Devrait renvoyer un code 403 Access Denied (Interdit)
-        $this->assertResponseStatusCodeSame(403); 
+        self::assertResponseStatusCodeSame(403); 
 
         $this->getEntityManager()->clear();
 
@@ -181,7 +189,7 @@ class UserControllerTest extends FunctionnalTestCase
             '_password' => 'password123', // Utilise le mot de passe standard de tes fixtures
         ]);
 
-        $this->assertResponseRedirects('/login');
+        self::assertResponseRedirects('/login');
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.alert', 'Votre compte est désactivé. Connexion impossible.');
 
@@ -201,7 +209,7 @@ class UserControllerTest extends FunctionnalTestCase
         ]);
 
         // Redirection vers la page d'accueil ou tableau de bord après succès
-        $this->assertResponseRedirects('/'); 
+        self::assertResponseRedirects('/'); 
     }
 
     /**
@@ -236,7 +244,7 @@ class UserControllerTest extends FunctionnalTestCase
                 '_password' => 'password123', // Ton mot de passe de fixtures
             ]);
 
-            $this->assertResponseRedirects('');
+            self::assertResponseRedirects('');
             $em->clear();
 
             // On récupère à nouveau notre utilisateur pour vérifier si le role a bien été rajouté

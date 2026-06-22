@@ -50,7 +50,7 @@ final class UserController extends AbstractController
 
             $plainPassword = $form->get('password')->getData();
 
-            if (!is_string($plainPassword) || empty($plainPassword)) {
+            if (!is_string($plainPassword) || $plainPassword === '') {
                 throw new \RuntimeException("Le mot de passe fourni n'est pas valide.");
             }
 

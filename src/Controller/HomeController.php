@@ -35,7 +35,7 @@ class HomeController extends AbstractController
     {
         $guest = $userRepository->findOneWithMedias($id);
 
-        if (!$guest) {
+        if ($guest === null) {
             throw $this->createNotFoundException("Cet invité n'existe pas.");
         }
 
@@ -48,7 +48,7 @@ class HomeController extends AbstractController
     public function portfolio(AlbumRepository $albumRepository, UserRepository $userRepository, MediaRepository $mediaRepository, ?int $id = null): Response
     {
         $albums = $albumRepository->findAll();
-        $album = $id ? $albumRepository->find($id) : null;
+        $album = ($id !== null) ? $albumRepository->find($id) : null;
         $user = $userRepository->findOneBy(['admin' => true]);
 
         if ($album instanceof Album) {

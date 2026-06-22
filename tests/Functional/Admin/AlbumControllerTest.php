@@ -20,12 +20,12 @@ class AlbumControllerTest extends FunctionnalTestCase
         $this->login();
 
         $this->get('/admin/album');
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('h2.page-title', 'Albums'); 
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h2.page-title', 'Albums'); 
 
         $expectedMediaCount = $this->service(AlbumRepository::class)->count([]);
 
-        $this->assertSelectorCount($expectedMediaCount, '.admin-album-table tbody tr');
+        self::assertSelectorCount($expectedMediaCount, '.admin-album-table tbody tr');
     }
 
     /**
@@ -36,14 +36,14 @@ class AlbumControllerTest extends FunctionnalTestCase
         $this->login();
 
         $crawler = $this->get('/admin/album/add');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Ajouter')->form();
         $form['album[name]'] = 'Mon nouvel album de test';
 
         $this->client->submit($form);
 
-        $this->assertResponseRedirects('/admin/album');
+        self::assertResponseRedirects('/admin/album');
 
         $albumRepository = $this->service(AlbumRepository::class);
         $addedAlbum = $albumRepository->findOneBy(['name' => 'Mon nouvel album de test']);
@@ -62,14 +62,14 @@ class AlbumControllerTest extends FunctionnalTestCase
         self::assertNotNull($albumToUpdate, 'Il faut au moins un album dans les fixtures pour ce test.');
 
         $crawler = $this->get('/admin/album/update/' . $albumToUpdate->getId());
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Modifier')->form();
         $form['album[name]'] = 'Nom mis à jour de l\'album';
 
         $this->client->submit($form);
 
-        $this->assertResponseRedirects('/admin/album');
+        self::assertResponseRedirects('/admin/album');
 
         // Rafraîchir l'entité depuis la base de données
         $updatedAlbum = $albumRepository->find($albumToUpdate->getId());
@@ -91,7 +91,7 @@ class AlbumControllerTest extends FunctionnalTestCase
 
         $this->get('/admin/album/delete/' . $albumId);
 
-        $this->assertResponseRedirects('/admin/album');
+        self::assertResponseRedirects('/admin/album');
 
         $this->getEntityManager()->clear();
         $deletedAlbum = $albumRepository->find($albumId);

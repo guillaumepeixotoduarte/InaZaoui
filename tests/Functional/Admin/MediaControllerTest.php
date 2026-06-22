@@ -22,13 +22,13 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login();
 
         $this->get('/admin/media');
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('h2.page-title', 'Medias'); 
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h2.page-title', 'Medias'); 
 
         $expectedMediaCount = $this->service(MediaRepository::class)->count([]);
         $expectedOnPage = min($expectedMediaCount, 25);
 
-        $this->assertSelectorCount($expectedOnPage, '.admin-media-table tbody tr');
+        self::assertSelectorCount($expectedOnPage, '.admin-media-table tbody tr');
     }
 
     /**
@@ -44,13 +44,13 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login((string) $guestUser->getEmail());
 
         $this->get('/admin/media');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $mediaRepository = $this->service(MediaRepository::class);
         $expectedMediaCount = $mediaRepository->count(['user' => $guestUser]);
         $expectedOnPage = min($expectedMediaCount, 25);
 
-        $this->assertSelectorCount($expectedOnPage, '.admin-media-table tbody tr');
+        self::assertSelectorCount($expectedOnPage, '.admin-media-table tbody tr');
     }  
 
     /**
@@ -61,7 +61,7 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login();
 
         $crawler = $this->get('/admin/media/add');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
 
         $fakeImagePath = sys_get_temp_dir() . '/test_image.jpg';
@@ -93,7 +93,7 @@ class MediaControllerTest extends FunctionnalTestCase
                 'media[album]' => $album->getId()
             ]);
 
-            $this->assertResponseRedirects('/admin/media');
+            self::assertResponseRedirects('/admin/media');
 
             $mediaRepository = $this->service(MediaRepository::class);
             $mediaInDb = $mediaRepository->findOneBy(['title' => 'Ma superbe photo de test', 'user' => $adminUser]);
@@ -107,7 +107,6 @@ class MediaControllerTest extends FunctionnalTestCase
 
             if (isset($mediaInDb)) {
                 $projectDir = self::getContainer()->getParameter('kernel.project_dir');
-                self::assertIsString($projectDir, "Le paramètre kernel.project_dir doit être une chaîne de caractères.");
                 $uploadedFilePath = $projectDir . '/public/uploads/media/' . $mediaInDb->getFile();
                 
                 if (file_exists($uploadedFilePath)) {
@@ -129,7 +128,7 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login((string) $guestUser->getEmail());
 
         $crawler = $this->get('/admin/media/add');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $fakeImagePath = sys_get_temp_dir() . '/guest_test_image.jpg';
         $image = imagecreate(10, 10);
@@ -152,7 +151,7 @@ class MediaControllerTest extends FunctionnalTestCase
                 'media[title]' => 'Photo déposée par un invité',
             ]);
 
-            $this->assertResponseRedirects('/admin/media');
+            self::assertResponseRedirects('/admin/media');
 
             $mediaRepository = $this->service(MediaRepository::class);
             $mediaInDb = $mediaRepository->findOneBy([
@@ -170,7 +169,6 @@ class MediaControllerTest extends FunctionnalTestCase
 
             if (isset($mediaInDb)) {
                 $projectDir = self::getContainer()->getParameter('kernel.project_dir');
-                self::assertIsString($projectDir, "Le paramètre kernel.project_dir doit être une chaîne de caractères.");
                 $uploadedFilePath = $projectDir . '/public/uploads/media/' . $mediaInDb->getFile();
                 
                 if (file_exists($uploadedFilePath)) {
@@ -188,7 +186,7 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login('admin@test.com');
 
         $crawler = $this->get('/admin/media/add');
-        $this->assertResponseIsSuccessful();
+        self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Ajouter')->form(); 
 
@@ -197,9 +195,9 @@ class MediaControllerTest extends FunctionnalTestCase
             'media[title]' => 'Titre sans image',
         ]);
 
-        $this->assertResponseStatusCodeSame(200);
+        self::assertResponseStatusCodeSame(200);
 
-        $this->assertSelectorTextContains('.invalid-feedback', 'Le fichier doit être une image valide');
+        self::assertSelectorTextContains('.invalid-feedback', 'Le fichier doit être une image valide');
     }
 
     /**
@@ -221,7 +219,7 @@ class MediaControllerTest extends FunctionnalTestCase
         self::assertIsString($emailUser, "L'utilisateur n'a pas d'adresse email valide.");
         $this->login($emailUser);
         $this->get(sprintf('/admin/media/delete/%d', $mediaId));
-        $this->assertResponseRedirects('/admin/media');
+        self::assertResponseRedirects('/admin/media');
         
         $this->getEntityManager()->clear();
         self::assertNull($mediaRepository->find($mediaId), 'Le média aurait dû être supprimé.');
@@ -248,7 +246,7 @@ class MediaControllerTest extends FunctionnalTestCase
         $this->login($emailUser1);
 
         $this->get(sprintf('/admin/media/delete/%d', $mediaOfGuest2->getId()));
-        $this->assertResponseStatusCodeSame(403);
+        self::assertResponseStatusCodeSame(403);
         
         $this->getEntityManager()->clear();
         self::assertNotNull($mediaRepository->find($mediaOfGuest2->getId()), 'Le média ne doit pas être supprimé.');
@@ -261,7 +259,7 @@ class MediaControllerTest extends FunctionnalTestCase
     {
         $this->login();
         $this->client->request('POST', '/admin/media/delete/99999');
-        $this->assertResponseStatusCodeSame(404);
+        self::assertResponseStatusCodeSame(404);
     }
 
 }

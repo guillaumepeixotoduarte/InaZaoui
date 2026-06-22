@@ -62,9 +62,6 @@ class MediaController extends AbstractController
             }
 
             $projectDir = $this->getParameter('kernel.project_dir');
-            if (!is_string($projectDir)) {
-                throw new \RuntimeException("Le paramètre kernel.project_dir est invalide.");
-            }
 
             $publicDir = $projectDir . '/public';
             $uploadTargetDir = $publicDir . '/uploads/';
@@ -93,7 +90,7 @@ class MediaController extends AbstractController
     {
         $media = $mediaRepository->find($id);
 
-        if (!$media) {
+        if ($media === null) {
             throw new NotFoundHttpException('Ce média n\'existe pas.');
         }
 
@@ -102,7 +99,7 @@ class MediaController extends AbstractController
         }
 
         $filePath = $media->getPath();
-        if ($filePath && file_exists($filePath)) {
+        if ($filePath !== '' && file_exists($filePath)) {
             unlink($filePath);
         }
 

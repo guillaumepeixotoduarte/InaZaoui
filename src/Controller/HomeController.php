@@ -45,7 +45,7 @@ class HomeController extends AbstractController
     }
 
     #[Route('/portfolio/{id}', name: 'portfolio')]
-    public function portfolio(?int $id = null, AlbumRepository $albumRepository, UserRepository $userRepository, MediaRepository $mediaRepository): Response
+    public function portfolio(AlbumRepository $albumRepository, UserRepository $userRepository, MediaRepository $mediaRepository, ?int $id = null): Response
     {
         $albums = $albumRepository->findAll();
         $album = $id ? $albumRepository->find($id) : null;

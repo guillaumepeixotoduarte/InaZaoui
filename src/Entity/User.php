@@ -33,12 +33,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180, unique: true)]
     private ?string $email = null;
 
+    /**
+     * @var Collection<int, Media>
+     */
     #[ORM\OneToMany(targetEntity: Media::class, mappedBy: 'user', cascade: ['remove'])]
     private Collection $medias;
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
+    /**
+     * @var array<int, string>
+     */
     #[ORM\Column]
     private array $roles = [];
 
@@ -88,13 +94,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return \Doctrine\Common\Collections\Collection<int, \App\Entity\Media>
+     * @return Collection<int, \App\Entity\Media>
      */
     public function getMedias(): Collection
     {
         return $this->medias;
     }
 
+    /**
+     * @param Collection<int, Media> $medias
+     */
     public function setMedias(Collection $medias): void
     {
         $this->medias = $medias;
@@ -122,9 +131,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function getUserIdentifier(): string
     {
-        return (string) $this->name;
+        $name = (string) $this->name;
+        
+        if ($name === '') {
+            return 'anonymous_user';
+        }
+
+        return $name;
     }
 
     public function getUsername(): string
@@ -132,17 +150,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return (string) $this->name;
     }
 
+    /**
+     * @return array<int, string> $roles
+     */
     public function getRoles(): array
     {
         $roles = $this->roles;
         
-        // Le système de sécurité de Symfony exige que chaque utilisateur
-        // possède au moins le ROLE_USER pour être considéré comme connecté.
         $roles[] = 'ROLE_USER';
         
         return array_unique($roles);
     }
 
+    /**
+     * @param array<int, string> $roles
+     */
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;

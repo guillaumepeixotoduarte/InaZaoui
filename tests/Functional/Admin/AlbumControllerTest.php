@@ -73,6 +73,7 @@ class AlbumControllerTest extends FunctionnalTestCase
 
         // Rafraîchir l'entité depuis la base de données
         $updatedAlbum = $albumRepository->find($albumToUpdate->getId());
+        self::assertNotNull($updatedAlbum, 'Il faut au moins un album dans les fixtures pour ce test.');
         self::assertEquals('Nom mis à jour de l\'album', $updatedAlbum->getName(), 'Le nom de l\'album n\'a pas été mis à jour en base de données.');
     }
 
@@ -85,8 +86,8 @@ class AlbumControllerTest extends FunctionnalTestCase
 
         $albumRepository = $this->service(AlbumRepository::class);
         $albumToDelete = $albumRepository->findOneBy([], ['id' => 'ASC']);
-        $albumId = $albumToDelete->getId();
         self::assertNotNull($albumToDelete, 'Il faut au moins un album dans les fixtures pour ce test.');
+        $albumId = $albumToDelete->getId();
 
         $this->get('/admin/album/delete/' . $albumId);
 

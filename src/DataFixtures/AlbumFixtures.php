@@ -23,6 +23,10 @@ class AlbumFixtures extends Fixture
         $manager->flush();
     }
 
+    /**
+     * 💡 Indiquation pour PHPStan
+     * @return array<int, class-string>
+     */
     public function getDependencies(): array
     {
         return [

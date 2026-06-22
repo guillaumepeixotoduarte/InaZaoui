@@ -51,7 +51,7 @@ class HomeControllerTest extends FunctionnalTestCase
         $firstGuest = $this->service(UserRepository::class)->findOneBy(['admin' => false], ['id' => 'ASC']);
         $expectedMediaCount = $this->service(MediaRepository::class)->count(['user' => $firstGuest]);
 
-        $this->assertSelectorTextContains('h3', $firstGuest->getName());
+        $this->assertSelectorTextContains('h3',(string) $firstGuest->getName());
         $this->assertSelectorCount($expectedMediaCount, '.media-list .media');
     }
 

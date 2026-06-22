@@ -11,8 +11,6 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
- *
- * @implements PasswordUpgraderInterface<User>
  */
 class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
 {
@@ -38,24 +36,32 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
     public function findOneWithMedias(int $id): ?User
     {
-        return $this->createQueryBuilder('u')
+        $result = $this->createQueryBuilder('u')
             ->leftJoin('u.medias', 'm') // Jointure avec la relation médias
             ->addSelect('m')            // Force le chargement immédiat des données
             ->where('u.id = :id')
             ->setParameter('id', $id)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $result instanceof User ? $result : null;
     }
 
+    /**
+     * @return array<int, User>
+     */
     public function findAllGuestsWithMedias(): array
     {
-        return $this->createQueryBuilder('u')
+        $results = $this->createQueryBuilder('u')
             ->leftJoin('u.medias', 'm')
             ->addSelect('m')       
             ->where('u.admin = :admin')
             ->setParameter('admin', false)
             ->getQuery()
             ->getResult();
+        
+        /** @var array<int, User> $results */
+        return $results;
     }
 
 //    /**

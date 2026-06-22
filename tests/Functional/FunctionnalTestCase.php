@@ -47,7 +47,9 @@ abstract class FunctionnalTestCase extends WebTestCase
 
     protected function login(string $email = 'admin@test.com'): void
     {
-        $user = $this->service(EntityManagerInterface::class)->getRepository(User::class)->findOneByEmail($email);
+        $user = $this->service(EntityManagerInterface::class)
+            ->getRepository(User::class)
+            ->findOneBy(['email' => $email]);
 
         self::assertNotNull($user, sprintf('Le compte utilisateur avec l\'email "%s" n\'existe pas dans les fixtures de test.', $email));
 

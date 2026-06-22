@@ -37,12 +37,11 @@ class MediaControllerTest extends FunctionnalTestCase
     public function testListAdminMediaAsGuestUser(): void
     {
         $userRepository = $this->service(UserRepository::class);
-        /** @var User $guestUser */
         $guestUser = $userRepository->findOneBy(['admin' => false], ['id' => 'ASC']);
         
         self::assertNotNull($guestUser, 'Il faut au moins un utilisateur invité dans les fixtures.');
 
-        $this->login($guestUser->getEmail());
+        $this->login((string) $guestUser->getEmail());
 
         $this->get('/admin/media');
         $this->assertResponseIsSuccessful();
@@ -84,6 +83,9 @@ class MediaControllerTest extends FunctionnalTestCase
             $adminUser = $this->service(UserRepository::class)->findOneBy(['admin' => true]);
             $album = $this->service(AlbumRepository::class)->findOneBy([]);
 
+            self::assertNotNull($adminUser, 'Il faut au moins un utilisateur admin dans les fixtures.');
+            self::assertNotNull($album, 'Il faut au moins un album dans les fixtures.');
+
             $this->client->submit($form, [
                 'media[file]' => $uploadedFile,
                 'media[title]' => 'Ma superbe photo de test',
@@ -103,8 +105,10 @@ class MediaControllerTest extends FunctionnalTestCase
                 unlink($fakeImagePath);
             }
 
-            if (isset($mediaInDb) && $mediaInDb !== null) {
-                $uploadedFilePath = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/media/' . $mediaInDb->getFile();
+            if (isset($mediaInDb)) {
+                $projectDir = self::getContainer()->getParameter('kernel.project_dir');
+                self::assertIsString($projectDir, "Le paramètre kernel.project_dir doit être une chaîne de caractères.");
+                $uploadedFilePath = $projectDir . '/public/uploads/media/' . $mediaInDb->getFile();
                 
                 if (file_exists($uploadedFilePath)) {
                     unlink($uploadedFilePath);
@@ -119,12 +123,10 @@ class MediaControllerTest extends FunctionnalTestCase
     public function testAddingMediaAsGuestUser(): void
     {
         $userRepository = $this->service(UserRepository::class);
-        /** @var User $guestUser */
         $guestUser = $userRepository->findOneBy(['admin' => false], ['id' => 'DESC']);
-        
-        self::assertNotNull($guestUser, 'Il faut un invité en BDD pour ce test.');
+        self::assertNotNull($guestUser, 'Il faut au moins un utilisateur invité dans les fixtures.');
 
-        $this->login($guestUser->getEmail());
+        $this->login((string) $guestUser->getEmail());
 
         $crawler = $this->get('/admin/media/add');
         $this->assertResponseIsSuccessful();
@@ -166,8 +168,9 @@ class MediaControllerTest extends FunctionnalTestCase
                 unlink($fakeImagePath);
             }
 
-            if (isset($mediaInDb) && $mediaInDb !== null) {
+            if (isset($mediaInDb)) {
                 $projectDir = self::getContainer()->getParameter('kernel.project_dir');
+                self::assertIsString($projectDir, "Le paramètre kernel.project_dir doit être une chaîne de caractères.");
                 $uploadedFilePath = $projectDir . '/public/uploads/media/' . $mediaInDb->getFile();
                 
                 if (file_exists($uploadedFilePath)) {
@@ -207,7 +210,6 @@ class MediaControllerTest extends FunctionnalTestCase
         $userRepository = $this->service(UserRepository::class);
         $mediaRepository = $this->service(MediaRepository::class);
 
-        /** @var User $guestUser */
         $guestUser = $userRepository->findOneBy(['admin' => false]);
         self::assertNotNull($guestUser, 'Il faut un invité pour ce test.');
 
@@ -215,7 +217,9 @@ class MediaControllerTest extends FunctionnalTestCase
         self::assertNotNull($mediaToDelete, 'Cet invité doit posséder au moins un média.');
         $mediaId = $mediaToDelete->getId();
 
-        $this->login($guestUser->getEmail());
+        $emailUser = $guestUser->getEmail();
+        self::assertIsString($emailUser, "L'utilisateur n'a pas d'adresse email valide.");
+        $this->login($emailUser);
         $this->get(sprintf('/admin/media/delete/%d', $mediaId));
         $this->assertResponseRedirects('/admin/media');
         
@@ -239,7 +243,9 @@ class MediaControllerTest extends FunctionnalTestCase
         $mediaOfGuest2 = $mediaRepository->findOneBy(['user' => $guest2]);
         self::assertNotNull($mediaOfGuest2, 'Le deuxième invité doit avoir un média.');
 
-        $this->login($guest1->getEmail());
+        $emailUser1 = $guest1->getEmail();
+        self::assertIsString($emailUser1, "L'utilisateur n'a pas d'adresse email valide.");
+        $this->login($emailUser1);
 
         $this->get(sprintf('/admin/media/delete/%d', $mediaOfGuest2->getId()));
         $this->assertResponseStatusCodeSame(403);

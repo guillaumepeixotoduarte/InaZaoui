@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Media;
+use App\Entity\User;
 use App\Form\MediaType;
 use App\Repository\MediaRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,6 +12,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -52,14 +54,31 @@ class MediaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             if (!$this->isGranted('ROLE_ADMIN')) {
-                $media->setUser($this->getUser());
+
+                $user = $this->getUser();
+                if ($user instanceof User) {
+                    $media->setUser($user);
+                }
             }
 
-            $publicDir = $this->getParameter('kernel.project_dir') . '/public';
+            $projectDir = $this->getParameter('kernel.project_dir');
+            if (!is_string($projectDir)) {
+                throw new \RuntimeException("Le paramètre kernel.project_dir est invalide.");
+            }
+
+            $publicDir = $projectDir . '/public';
             $uploadTargetDir = $publicDir . '/uploads/';
 
-            $media->setPath('uploads/' . md5(uniqid()) . '.' . $media->getFile()->guessExtension());
-            $media->getFile()->move($uploadTargetDir, $media->getPath());
+            $file = $media->getFile();
+            if ($file instanceof UploadedFile) {
+                $newFilename = md5(uniqid()) . '.' . $file->guessExtension();
+                $media->setPath('uploads/' . $newFilename);
+                
+                // On déplace le fichier physiquement
+                $file->move($uploadTargetDir, $newFilename);
+            } else {
+                throw new \RuntimeException("Aucun fichier valide n'a été téléversé.");
+            }
             $em->persist($media);
             $em->flush();
 
@@ -72,7 +91,7 @@ class MediaController extends AbstractController
     #[Route('/admin/media/delete/{id}', name: 'admin_media_delete')]
     public function delete(int $id, MediaRepository $mediaRepository, EntityManagerInterface $em): RedirectResponse
     {
-        $media = $mediaRepository->getRepository(Media::class)->find($id);
+        $media = $mediaRepository->find($id);
 
         if (!$media) {
             throw new NotFoundHttpException('Ce média n\'existe pas.');

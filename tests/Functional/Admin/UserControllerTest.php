@@ -55,7 +55,8 @@ class UserControllerTest extends FunctionnalTestCase
     /**
      * Vérification que le bouton qui désactive un invité fonctionne
      */
-    public function testDesactivateUser(){
+    public function testDesactivateUser(): void
+    {
 
         $this->login();
 
@@ -64,6 +65,9 @@ class UserControllerTest extends FunctionnalTestCase
 
         $userRepository = $this->service(UserRepository::class);
         $classicUser = $userRepository->findOneBy(['admin' => false]);
+
+        self::assertNotNull($classicUser, "Aucun utilisateur classique trouvé pour ce test.");
+
         $classicUserId = $classicUser->getId();
         $userAccess = $classicUser->isActive();
 
@@ -74,6 +78,8 @@ class UserControllerTest extends FunctionnalTestCase
         $this->getEntityManager()->clear();
 
         $AfterChangeUser = $userRepository->findOneBy(['id' => $classicUserId]);
+
+        self::assertNotNull($AfterChangeUser, "L'utilisateur doit exister en BDD.");
 
         $this->assertNotEquals($userAccess, $AfterChangeUser->isActive(), 'Le statut de l\'utilisateur n\'a pas été inversé en BDD.');
     }
@@ -87,8 +93,8 @@ class UserControllerTest extends FunctionnalTestCase
 
         $userRepository = $this->service(UserRepository::class);
         $userToDelete = $userRepository->findOneBy(['admin' => false], ['id' => 'ASC']);
+        self::assertNotNull($userToDelete, "L'utilisateur doit exister en BDD.");
         $albumId = $userToDelete->getId();
-        self::assertNotNull($userToDelete, 'Il faut au moins un album dans les fixtures pour ce test.');
 
         $this->get('/admin/invite/delete/' . $albumId);
 
@@ -96,7 +102,7 @@ class UserControllerTest extends FunctionnalTestCase
 
         $this->getEntityManager()->clear();
         $deletedUser = $userRepository->find($albumId);
-        self::assertNull($deletedUser, 'L\'album n\'a pas été supprimé de la base de données.');
+        self::assertNull($deletedUser, 'L\'utilisateur n\'a pas été supprimé de la base de données.');
     }
 
     /**
@@ -127,7 +133,8 @@ class UserControllerTest extends FunctionnalTestCase
 
         $userRepository = $this->service(UserRepository::class);
         $userLogin = $userRepository->findOneBy(['admin' => false]);
-        $this->login($userLogin->getEmail()); 
+        self::assertNotNull($userLogin, 'Il faut un utilisateur en BDD pour tenter la suppression.');
+        $this->login((string) $userLogin->getEmail()); 
 
         $userRepository = $this->service(UserRepository::class);
         $classicUser = $userRepository->findOneBy(['admin' => false], ['id' => 'DESC']);
@@ -146,6 +153,112 @@ class UserControllerTest extends FunctionnalTestCase
         // Vérification que l'utilisateur n'est pas supprimé
         $userAfterAttempt = $userRepository->find($classicUserId);
         self::assertNotNull($userAfterAttempt, "L'utilisateur n'aurait pas dû être supprimé par un simple invité.");
+    }
+
+    /**
+     * Vérifie qu'un compte désactivé au hasard est bloqué à la connexion, puis débloqué une fois réactivé.
+     */
+    public function testDisabledUserLoginWorkflow(): void
+    {
+        $userRepository = $this->service(UserRepository::class);
+        $em = $this->getEntityManager(); 
+
+        // 1. On récupère un utilisateur classique au hasard
+        $user = $userRepository->findOneBy(['admin' => false]);
+        self::assertNotNull($user, "Il faut un utilisateur en BDD pour exécuter ce test.");
+        $userName = $user->getName();
+
+        // 2. On le passe à actif = false (désactivé)
+        $user->setActive(false); // Ajuste selon le nom de ton setter (ex: setActive(0))
+        $em->flush();
+        $em->clear();
+
+        // 3. Tentative de connexion -> Doit échouer
+        $crawler = $this->get('/login');
+        $form = $crawler->selectButton('Connexion')->form(); // Ajuste le texte de ton bouton
+        $this->client->submit($form, [
+            '_username' => $userName,
+            '_password' => 'password123', // Utilise le mot de passe standard de tes fixtures
+        ]);
+
+        $this->assertResponseRedirects('/login');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert', 'Votre compte est désactivé. Connexion impossible.');
+
+        // 4. On le repasse en normal (actif = true)
+        $user = $userRepository->findOneBy(['name' => $userName]);
+        self::assertNotNull($user, "Il faut un utilisateur en BDD pour exécuter ce test.");
+        $user->setActive(true);
+        $em->flush();
+        $em->clear();
+
+        // 5. Nouvelle tentative de connexion -> Doit réussir
+        $crawler = $this->get('/login');
+        $form = $crawler->selectButton('Connexion')->form();
+        $this->client->submit($form, [
+            '_username' => $userName,
+            '_password' => 'password123',
+        ]);
+
+        // Redirection vers la page d'accueil ou tableau de bord après succès
+        $this->assertResponseRedirects('/'); 
+    }
+
+    /**
+     * Vérifie qu'un utilisateur classique modifié temporairement avec la colonne admin à true 
+     * mais sans le ROLE_ADMIN récupère automatiquement son rôle lors de sa connexion.
+     */
+    public function testAdminColumnSynchronizesRoleOnLogin(): void
+    {
+        $userRepository = $this->service(UserRepository::class);
+        $em = $this->getEntityManager();
+
+        // 1. On récupère un utilisateur lambda (pas admin)
+        $user = $userRepository->findOneBy(['admin' => false]);
+        self::assertNotNull($user, "Il faut un utilisateur classique en BDD pour exécuter ce test.");
+        $userName = $user->getName();
+
+        // On sauvegarde ses rôles d'origine pour pouvoir les remettre à la fin
+        $originalRoles = $user->getRoles();
+
+        try {
+            // 2. On le transforme en "admin corrompu" : colonne à true, mais pas de ROLE_ADMIN
+            $user->setAdmin(true); // Ajuste selon ton setter
+            $user->setRoles([]);   // On s'assure qu'il n'a aucun rôle admin
+            $em->flush();
+            $em->clear();
+
+            // 3. Tentative de connexion
+            $crawler = $this->get('/login');
+            $form = $crawler->selectButton('Connexion')->form();
+            $this->client->submit($form, [
+                '_username' => $userName,
+                '_password' => 'password123', // Ton mot de passe de fixtures
+            ]);
+
+            $this->assertResponseRedirects('');
+            $em->clear();
+
+            // On récupère à nouveau notre utilisateur pour vérifier si le role a bien été rajouté
+            $userAfterLogin = $userRepository->findOneBy(['name' => $userName]);
+            self::assertNotNull($userAfterLogin, "Il faut un utilisateur en BDD pour exécuter ce test.");
+            self::assertContains(
+                'ROLE_ADMIN', 
+                $userAfterLogin->getRoles(), 
+                "Le rôle ROLE_ADMIN aurait dû être ajouté automatiquement car la colonne admin est à true."
+            );
+
+        } finally {
+            $this->client->restart();
+            
+            $userReset = $userRepository->findOneBy(['name' => $userName]);
+            if ($userReset !== null) {
+                $userReset->setAdmin(false);
+                $userReset->setRoles($originalRoles);
+                $em->flush();
+                $em->clear();
+            }
+        }
     }
 
 }

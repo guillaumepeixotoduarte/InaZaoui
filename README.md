@@ -40,14 +40,23 @@ php bin/console doctrine:migrations:migrate --no-interaction
 #### 4. Chargement des données de test (Fixtures)
 
 ```bash
-php bin/console doctrine:fixtures:load --no-interaction
+php bin/console doctrine:fixtures:load --env=test --no-interaction
 ```
 
 #### 5. Lancer le serveur de développement
 
 ```bash
-symfony server:start -d
+symfony server
 ```
+
+#### 6.
+
+Pour se connecter avec le compte de Ina, il faut utiliser les identifiants suivants:
+- identifiant : `Ina Zaoui`
+- mot de passe : `password`
+
+Vous trouverez dans le fichier `backup.zip` un dump SQL anonymisé de la base de données et toutes les images qui se trouvaient dans le dossier `public/uploads`.
+Faudrait peut être trouver une meilleure solution car le fichier est très gros, il fait plus de 1Go.
 
 ---
 
@@ -61,19 +70,19 @@ declare(strict_types=1);
 
 ### Commandes utiles
 
-#### Exécuter toute la suite de tests
+#### 1. Exécuter toute la suite de tests
 
 ```bash
 php bin/phpunit
 ```
 
-#### Exécuter un fichier de test spécifique
+#### 2. Exécuter un fichier de test spécifique
 
 ```bash
 php bin/phpunit tests/Functional/Admin/MediaControllerTest.php
 ```
 
-#### Exécuter un test de coverage
+#### 3. Exécuter un test de coverage
 
 Le resultat se trouvera dans le dossier  `var/cache/test/` qui est ignoré par Git
 
@@ -136,13 +145,25 @@ Pour la page `guests`, la récupération des utilisateurs a été modifié afin 
 - **Page plus rapide** : le serveur traite moins d'opérations pour afficher la liste des utilisateurs.
 - **Meilleure évolutivité** : les performances restent bonnes même lorsque le nombre d'utilisateurs et de médias augmente.
 
+### Audit de performance de la partie 'Front'
+
+Test exécuté en local , le temps de latence réseau avec la base de données est de 0 ms, ce qui peut masquer des lenteurs. Le **nombre de requêtes SQL** a donc été choisi comme métrique principale, car un volume élevé de requêtes en local se traduit systématiquement par un goulot d'étranglement majeur en production.
+
+#### 📈 Métriques et État du Front Office
+
+Grâce aux optimisations de requêtes effectuées, l'ensemble des pages dynamiques se stabilise désormais à un seuil strict de **3 requêtes maximum**.
+
+| Page / URL | Requêtes SQL | Statut | Analyse & Diagnostic |
+| :--- | :---: | :---: | :--- |
+| `/`                       | **0** |  Excellent | Page statique, aucune sollicitation de la base de données. |
+| `/about`                  | **0** |  Excellent | Contenu textuel pur, consommation de ressources nulle. |
+| `/portfolio`              | **3** |  Excellent | Chargement des albums et des médias associés. |
+| `/portfolio/{id}`         | **3** |  Excellent | Chargement des albums et des médias associés. |
+| `/guest/{id}`             | **3** |  Excellent | Chargement des medias associé à l'utilisateurs |
+| `/guests` *(Avant)*      | **N+1** | Mauvais   | Surchargé en requêtes en boucle (Lazy Loading). |
+| `/guests` *(Après)*       | **1** |  Optimisé  | **Corrigé.** Utilisation d'une requête avec jointure. |
+
 ```
 ```
 
 
-Pour se connecter avec le compte de Ina, il faut utiliser les identifiants suivants:
-- identifiant : `Ina Zaoui`
-- mot de passe : `password`
-
-Vous trouverez dans le fichier `backup.zip` un dump SQL anonymisé de la base de données et toutes les images qui se trouvaient dans le dossier `public/uploads`.
-Faudrait peut être trouver une meilleure solution car le fichier est très gros, il fait plus de 1Go.

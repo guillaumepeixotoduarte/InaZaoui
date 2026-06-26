@@ -25,9 +25,12 @@ cp .env .env.local
 ```
 
 Dans `.env.local`, ajuste la ligne suivante avec tes identifiants locaux :
+`root` => identifiant BDD
+`password` => mot de passe BDD
+`ina_zaoui` => nom de la BDD
 
 ```ini
-DATABASE_URL="mysql://root:password@127.0.0.1:3306/car_rental?serverVersion=8.0"
+DATABASE_URL="mysql://root:password@127.0.0.1:3306/ina_zaoui?serverVersion=8.0"
 ```
 
 #### 3. Création de la base de données et des tables
@@ -40,6 +43,8 @@ php bin/console doctrine:migrations:migrate --no-interaction
 #### 4. Chargement des données de test (Fixtures)
 
 ```bash
+php bin/console doctrine:database:create --env=test
+php bin/console doctrine:migrations:migrate --env=test --no-interaction
 php bin/console doctrine:fixtures:load --env=test --no-interaction
 ```
 

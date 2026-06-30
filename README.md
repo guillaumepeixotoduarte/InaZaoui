@@ -89,10 +89,10 @@ php bin/phpunit tests/Functional/Admin/MediaControllerTest.php
 
 #### 3. Exécuter un test de coverage
 
-Le resultat se trouvera dans le dossier  `var/cache/test/` qui est ignoré par Git
+Le resultat se trouvera dans le dossier  `code_coverage`
 
 ```bash
-php -d xdebug.mode=coverage bin/phpunit --coverage-html var/cache/test
+php -d xdebug.mode=coverage bin/phpunit --coverage-html code_coverage/
 ```
 
 ---
